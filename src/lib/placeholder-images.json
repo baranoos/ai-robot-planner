@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "robot-concept",
+      "description": "A conceptual drawing of a robot.",
+      "imageUrl": "https://images.unsplash.com/photo-1699602048589-0f492f833270?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxyb2JvdCUyMGNvbmNlcHR8ZW58MHx8fHwxNzU4Nzg2MTM0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "robot concept"
+    },
+    {
+      "id": "circuit-diagram",
+      "description": "A placeholder for a circuit diagram.",
+      "imageUrl": "https://images.unsplash.com/photo-1667372525822-d226d23018dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjaXJjdWl0JTIwZGlhZ3JhbXxlbnwwfHx8fDE3NTg3MzY4MzF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "circuit diagram"
+    },
+    {
+      "id": "3d-model",
+      "description": "A placeholder for a 3D model of the robot.",
+      "imageUrl": "https://images.unsplash.com/photo-1662558274454-4b1fc87719d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cm9ib3QlMjBtb2RlbHxlbnwwfHx8fDE3NTg3ODYxMzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "robot model"
+    }
+  ]
 }

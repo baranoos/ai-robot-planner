@@ -1,3 +1,58 @@
+'use client';
+
+import { useState } from 'react';
+import type { ProjectData } from '@/lib/types';
+import { generateProjectAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import Header from '@/components/robosketch/header';
+import InputStep from '@/components/robosketch/input-step';
+import GeneratingStep from '@/components/robosketch/generating-step';
+import ResultsDisplay from '@/components/robosketch/results-display';
+
+type ProjectState = 'input' | 'generating' | 'results';
+
 export default function Home() {
-  return <></>;
+  const [projectState, setProjectState] = useState<ProjectState>('input');
+  const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const { toast } = useToast();
+
+  const handleGenerate = async (data: {
+    description: string;
+    platform: 'Raspberry Pi' | 'Arduino' | 'MicroBit';
+  }) => {
+    setProjectState('generating');
+    const result = await generateProjectAction(data);
+    
+    if (result.success && result.data) {
+      setProjectData(result.data);
+      setProjectState('results');
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error Generating Project',
+        description: result.error || 'An unknown error occurred.',
+      });
+      setProjectState('input');
+    }
+  };
+
+  const handleReset = () => {
+    setProjectData(null);
+    setProjectState('input');
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow flex items-center justify-center p-4 sm:p-6 md:p-8">
+        <div className="w-full max-w-4xl">
+          {projectState === 'input' && <InputStep onSubmit={handleGenerate} />}
+          {projectState === 'generating' && <GeneratingStep />}
+          {projectState === 'results' && projectData && (
+            <ResultsDisplay data={projectData} onReset={handleReset} />
+          )}
+        </div>
+      </main>
+    </div>
+  );
 }
