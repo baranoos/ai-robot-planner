@@ -4,23 +4,9 @@ import { generateProjectDescription } from '@/ai/flows/generate-project-descript
 import { generateBillOfMaterials } from '@/ai/flows/generate-bill-of-materials';
 import { generateCode } from '@/ai/flows/generate-code';
 import { generateAssemblyInstructions } from '@/ai/flows/generate-assembly-instructions';
+import { generateRobotImages } from '@/ai/flows/generate-images';
 import type { ProjectData } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-async function getPlaceholderDataUri(id: string): Promise<string> {
-  const placeholder = PlaceHolderImages.find((p) => p.id === id);
-  if (!placeholder) return '';
-  try {
-    const response = await fetch(placeholder.imageUrl);
-    if (!response.ok) return '';
-    const blob = await response.blob();
-    const buffer = Buffer.from(await blob.arrayBuffer());
-    return `data:${blob.type};base64,${buffer.toString('base64')}`;
-  } catch (error) {
-    console.error(`Failed to fetch placeholder for ${id}:`, error);
-    return '';
-  }
-}
 
 export async function generateProjectAction(data: {
   description: string;
@@ -28,27 +14,28 @@ export async function generateProjectAction(data: {
 }): Promise<{ success: boolean; data?: ProjectData; error?: string }> {
   try {
     const projectDescription = await generateProjectDescription({ input: data.description });
-
-    const [billOfMaterials, code, circuitDiagramUri, robot3dModelUri] = await Promise.all([
-      generateBillOfMaterials(projectDescription),
-      generateCode({
-        robotDescription: projectDescription.projectDescription,
-        platform: data.platform,
-      }),
-      getPlaceholderDataUri('circuit-diagram'),
-      getPlaceholderDataUri('3d-model'),
-    ]);
+    const billOfMaterials = await generateBillOfMaterials(projectDescription);
+    const code = await generateCode({
+      robotDescription: projectDescription.projectDescription,
+      platform: data.platform,
+    });
     
     const bomString = billOfMaterials.billOfMaterials
-      .map(item => `${item.component}: ${item.description} - $${item.approximatePriceUSD}`)
+      .map(item => `${item.component}: ${item.description} - ${item.approximatePriceUSD}`)
       .join('\n');
+    
+    // Generate images based on the project description and bill of materials
+    const generatedImages = await generateRobotImages({
+      projectDescription: projectDescription.projectDescription,
+      billOfMaterials: bomString,
+    });
 
     const assemblyInstructions = await generateAssemblyInstructions({
       projectDescription: projectDescription.projectDescription,
       billOfMaterials: bomString,
       code: code.code,
-      circuitDiagram: circuitDiagramUri,
-      robot3DModel: robot3dModelUri,
+      circuitDiagram: generatedImages.circuitDiagram,
+      robot3DModel: generatedImages.robot3DModel,
     });
     
     const projectData: ProjectData = {
@@ -56,6 +43,9 @@ export async function generateProjectAction(data: {
       billOfMaterials,
       code,
       assemblyInstructions,
+      conceptImage: generatedImages.conceptImage,
+      circuitDiagramImage: generatedImages.circuitDiagram,
+      robot3DModelImage: generatedImages.robot3DModel,
       platform: data.platform,
     };
 

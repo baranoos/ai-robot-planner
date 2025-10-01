@@ -8,5 +8,8 @@ export type ProjectData = {
   billOfMaterials: GenerateBillOfMaterialsOutput;
   code: GenerateCodeOutput;
   assemblyInstructions: GenerateAssemblyInstructionsOutput;
+  conceptImage?: string;
+  circuitDiagramImage?: string;
+  robot3DModelImage?: string;
   platform: 'Raspberry Pi' | 'Arduino' | 'MicroBit';
 };

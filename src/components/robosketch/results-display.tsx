@@ -19,9 +19,10 @@ interface ResultsDisplayProps {
 }
 
 export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
-  const conceptImage = PlaceHolderImages.find((p) => p.id === 'robot-concept');
-  const circuitImage = PlaceHolderImages.find((p) => p.id === 'circuit-diagram');
-  const modelImage = PlaceHolderImages.find((p) => p.id === '3d-model');
+  // Use generated images if available, otherwise fall back to placeholders
+  const conceptImage = data.conceptImage || PlaceHolderImages.find((p) => p.id === 'robot-concept')?.imageUrl;
+  const circuitImage = data.circuitDiagramImage || PlaceHolderImages.find((p) => p.id === 'circuit-diagram')?.imageUrl;
+  const modelImage = data.robot3DModelImage || PlaceHolderImages.find((p) => p.id === '3d-model')?.imageUrl;
 
   const handleDownload = async () => {
     const zip = new JSZip();
@@ -35,13 +36,39 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
     
     zip.file("assembly_instructions.md", data.assemblyInstructions.assemblyInstructions);
 
-    if (circuitImage) {
-      const response = await fetch(circuitImage.imageUrl);
+    // Add generated images to the zip if available, otherwise use placeholders
+    if (circuitImage && circuitImage.startsWith('data:')) {
+      // It's a data URI, need to extract the base64 part and create a blob
+      const base64Data = circuitImage.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {type: 'image/png'});
+      zip.file("images/circuit_diagram.png", blob);
+    } else if (circuitImage && !circuitImage.startsWith('data:')) {
+      // It's a URL, fetch it
+      const response = await fetch(circuitImage);
       const blob = await response.blob();
       zip.file("images/circuit_diagram.jpg", blob);
     }
-    if (modelImage) {
-      const response = await fetch(modelImage.imageUrl);
+
+    if (modelImage && modelImage.startsWith('data:')) {
+      // It's a data URI, need to extract the base64 part and create a blob
+      const base64Data = modelImage.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {type: 'image/png'});
+      zip.file("images/3d_model.png", blob);
+    } else if (modelImage && !modelImage.startsWith('data:')) {
+      // It's a URL, fetch it
+      const response = await fetch(modelImage);
       const blob = await response.blob();
       zip.file("images/3d_model.jpg", blob);
     }
@@ -86,12 +113,11 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
                         <div>
                             <h3 className="font-semibold mb-2">Concept Visualization</h3>
                              <Image
-                                src={conceptImage.imageUrl}
-                                alt={conceptImage.description}
+                                src={conceptImage}
+                                alt="Generated robot concept visualization"
                                 width={600}
                                 height={400}
                                 className="rounded-lg border object-cover"
-                                data-ai-hint={conceptImage.imageHint}
                             />
                         </div>
                     )}
@@ -131,7 +157,7 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
                         <CardDescription>Wiring schematics for your robot.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {circuitImage && <Image src={circuitImage.imageUrl} alt={circuitImage.description} width={600} height={400} className="rounded-lg border object-cover" data-ai-hint={circuitImage.imageHint} />}
+                        {circuitImage && <Image src={circuitImage} alt="Generated circuit diagram" width={600} height={400} className="rounded-lg border object-cover" />}
                     </CardContent>
                 </Card>
                 <Card>
@@ -140,7 +166,7 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
                         <CardDescription>Printable parts for your robot's chassis.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {modelImage && <Image src={modelImage.imageUrl} alt={modelImage.description} width={600} height={400} className="rounded-lg border object-cover" data-ai-hint={modelImage.imageHint} />}
+                        {modelImage && <Image src={modelImage} alt="Generated 3D model" width={600} height={400} className="rounded-lg border object-cover" />}
                     </CardContent>
                 </Card>
             </div>
