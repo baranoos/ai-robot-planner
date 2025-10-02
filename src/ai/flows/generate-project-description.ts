@@ -8,8 +8,8 @@
  * - GenerateProjectDescriptionOutput - The return type for the generateProjectDescription function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai, DEFAULT_MODEL } from '@/ai/openai-client';
+import { z } from 'zod';
 
 const GenerateProjectDescriptionInputSchema = z.object({
   input: z.string().describe('A description of the desired robot.'),
@@ -22,26 +22,38 @@ const GenerateProjectDescriptionOutputSchema = z.object({
 export type GenerateProjectDescriptionOutput = z.infer<typeof GenerateProjectDescriptionOutputSchema>;
 
 export async function generateProjectDescription(input: GenerateProjectDescriptionInput): Promise<GenerateProjectDescriptionOutput> {
-  return generateProjectDescriptionFlow(input);
-}
+  const prompt = `You are an expert roboticist that can generate a clear project description for a robot design based on a user description. The project description should briefly define the goals, scope and key features of the robot.
 
-const prompt = ai.definePrompt({
-  name: 'generateProjectDescriptionPrompt',
-  input: {schema: GenerateProjectDescriptionInputSchema},
-  output: {schema: GenerateProjectDescriptionOutputSchema},
-  prompt: `You are an expert roboticist that can generate a clear project description for a robot design based on a user description.  The project description should briefly define the goals, scope and key features of the robot.
+User description: ${input.input}`;
 
-User description: {{{input}}}`,
-});
+  try {
+    const response = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert roboticist. Respond with valid JSON containing a "projectDescription" field.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
 
-const generateProjectDescriptionFlow = ai.defineFlow(
-  {
-    name: 'generateProjectDescriptionFlow',
-    inputSchema: GenerateProjectDescriptionInputSchema,
-    outputSchema: GenerateProjectDescriptionOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    const parsed = JSON.parse(content);
+    return {
+      projectDescription: parsed.projectDescription || '',
+    };
+  } catch (error) {
+    console.error('Error generating project description:', error);
+    throw new Error('Failed to generate project description');
   }
-);
+}

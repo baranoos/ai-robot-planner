@@ -8,8 +8,8 @@
  * - GenerateCodeOutput - The return type for the generateCode function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai, DEFAULT_MODEL } from '@/ai/openai-client';
+import { z } from 'zod';
 
 const GenerateCodeInputSchema = z.object({
   robotDescription: z
@@ -25,30 +25,43 @@ const GenerateCodeOutputSchema = z.object({
 export type GenerateCodeOutput = z.infer<typeof GenerateCodeOutputSchema>;
 
 export async function generateCode(input: GenerateCodeInput): Promise<GenerateCodeOutput> {
-  return generateCodeFlow(input);
-}
+  const { robotDescription, platform } = input;
+  
+  const prompt = `You are an expert in generating code for robots. Based on the description of the robot and the platform, you will generate the code to control the robot.
 
-const prompt = ai.definePrompt({
-  name: 'generateCodePrompt',
-  input: {schema: GenerateCodeInputSchema},
-  output: {schema: GenerateCodeOutputSchema},
-  prompt: `You are an expert in generating code for robots. Based on the description of the robot and the platform, you will generate the code to control the robot.
+Robot Description: ${robotDescription}
+Platform: ${platform}
 
-Robot Description: {{{robotDescription}}}
-Platform: {{{platform}}}
+Please generate the code:`;
 
-Please generate the code:
-`,
-});
+  try {
+    const response = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert in generating code for robots. Respond with valid JSON containing a "code" field with the generated code.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
 
-const generateCodeFlow = ai.defineFlow(
-  {
-    name: 'generateCodeFlow',
-    inputSchema: GenerateCodeInputSchema,
-    outputSchema: GenerateCodeOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    const parsed = JSON.parse(content);
+    return {
+      code: parsed.code || '',
+    };
+  } catch (error) {
+    console.error('Error generating code:', error);
+    throw new Error('Failed to generate code');
   }
-);
+}

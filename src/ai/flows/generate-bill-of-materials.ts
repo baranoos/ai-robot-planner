@@ -7,8 +7,8 @@
  * - GenerateBillOfMaterialsOutput - The return type for the generateBillOfMaterials function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai, DEFAULT_MODEL } from '@/ai/openai-client';
+import { z } from 'zod';
 
 const GenerateBillOfMaterialsInputSchema = z.object({
   projectDescription: z
@@ -36,28 +36,40 @@ export type GenerateBillOfMaterialsOutput = z.infer<
 export async function generateBillOfMaterials(
   input: GenerateBillOfMaterialsInput
 ): Promise<GenerateBillOfMaterialsOutput> {
-  return generateBillOfMaterialsFlow(input);
-}
+  const prompt = `You are an expert robotics engineer who specializes in creating Bills of Materials for open-source robot projects.
 
-const prompt = ai.definePrompt({
-  name: 'generateBillOfMaterialsPrompt',
-  input: {schema: GenerateBillOfMaterialsInputSchema},
-  output: {schema: GenerateBillOfMaterialsOutputSchema},
-  prompt: `You are an expert robotics engineer who specializes in creating Bills of Materials for open-source robot projects.
+Based on the project description, generate a Bill of Materials (BOM) with affordable, open-source components and links to purchase them from Adafruit, SparkFun, Pimoroni, and Mouser, along with approximate prices in USD.
 
-  Based on the project description, generate a Bill of Materials (BOM) with affordable, open-source components and links to purchase them from Adafruit, SparkFun, Pimoroni, and Mouser, along with approximate prices in USD.
+Project Description: ${input.projectDescription}`;
 
-  Project Description: {{{projectDescription}}}`,
-});
+  try {
+    const response = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert robotics engineer. Respond with valid JSON containing a "billOfMaterials" array with objects that have "component", "description", "link", and "approximatePriceUSD" fields.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
 
-const generateBillOfMaterialsFlow = ai.defineFlow(
-  {
-    name: 'generateBillOfMaterialsFlow',
-    inputSchema: GenerateBillOfMaterialsInputSchema,
-    outputSchema: GenerateBillOfMaterialsOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    const parsed = JSON.parse(content);
+    return {
+      billOfMaterials: parsed.billOfMaterials || [],
+    };
+  } catch (error) {
+    console.error('Error generating bill of materials:', error);
+    throw new Error('Failed to generate bill of materials');
   }
-);
+}
