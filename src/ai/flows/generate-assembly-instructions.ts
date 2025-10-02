@@ -8,8 +8,8 @@
  * - GenerateAssemblyInstructionsOutput - The return type for the generateAssemblyInstructions function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { openai, DEFAULT_MODEL } from '@/ai/openai-client';
+import { z } from 'zod';
 
 const GenerateAssemblyInstructionsInputSchema = z.object({
   projectDescription: z
@@ -45,35 +45,46 @@ export type GenerateAssemblyInstructionsOutput = z.infer<
 export async function generateAssemblyInstructions(
   input: GenerateAssemblyInstructionsInput
 ): Promise<GenerateAssemblyInstructionsOutput> {
-  return generateAssemblyInstructionsFlow(input);
-}
+  const prompt = `You are an expert in robotics and creating clear, concise assembly instructions.
 
-const prompt = ai.definePrompt({
-  name: 'generateAssemblyInstructionsPrompt',
-  input: {
-    schema: GenerateAssemblyInstructionsInputSchema,
-  },
-  output: {schema: GenerateAssemblyInstructionsOutputSchema},
-  prompt: `You are an expert in robotics and creating clear, concise assembly instructions.
+Using the following information, generate step-by-step instructions for assembling the robot.
+Specify the format in which the instructions are provided (PDF or Markdown).
 
-  Using the following information, generate step-by-step instructions for assembling the robot.
-  Specify the format in which the instructions are provided (PDF or Markdown).
+Project Description: ${input.projectDescription}
+Bill of Materials: ${input.billOfMaterials}
+Code: ${input.code}
 
-  Project Description: {{{projectDescription}}}
-  Bill of Materials: {{{billOfMaterials}}}
-  Circuit Diagram: {{media url=circuitDiagram}}
-  Code: {{{code}}}
-  3D Model: {{media url=robot3DModel}}`,
-});
+Note: Circuit diagrams and 3D models are provided as data URIs but may be empty if not available.`;
 
-const generateAssemblyInstructionsFlow = ai.defineFlow(
-  {
-    name: 'generateAssemblyInstructionsFlow',
-    inputSchema: GenerateAssemblyInstructionsInputSchema,
-    outputSchema: GenerateAssemblyInstructionsOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  try {
+    const response = await openai.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert in robotics. Respond with valid JSON containing "assemblyInstructions" (string) and "assemblyInstructionsFormat" (either "pdf" or "markdown") fields.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    const parsed = JSON.parse(content);
+    return {
+      assemblyInstructions: parsed.assemblyInstructions || '',
+      assemblyInstructionsFormat: parsed.assemblyInstructionsFormat === 'pdf' ? 'pdf' : 'markdown',
+    };
+  } catch (error) {
+    console.error('Error generating assembly instructions:', error);
+    throw new Error('Failed to generate assembly instructions');
   }
-);
+}

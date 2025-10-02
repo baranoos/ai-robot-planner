@@ -163,7 +163,7 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">3D Model</CardTitle>
-                        <CardDescription>Printable parts for your robot's chassis.</CardDescription>
+                        <CardDescription>Printable parts for your robot&apos;s chassis.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {modelImage && <Image src={modelImage} alt="Generated 3D model" width={600} height={400} className="rounded-lg border object-cover" />}

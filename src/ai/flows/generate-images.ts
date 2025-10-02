@@ -8,8 +8,8 @@
  * - GenerateImagesOutput - The return type for the generateRobotImages function.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { openai, IMAGE_MODEL } from '@/ai/openai-client';
+import { z } from 'zod';
 
 const GenerateImagesInputSchema = z.object({
   projectDescription: z.string().describe('A detailed description of the robot project.'),
@@ -27,36 +27,34 @@ const GenerateImagesOutputSchema = z.object({
 export type GenerateImagesOutput = z.infer<typeof GenerateImagesOutputSchema>;
 
 export async function generateRobotImages(input: GenerateImagesInput): Promise<GenerateImagesOutput> {
-  return generateImagesFlow(input);
-}
-
-const generateImagesFlow = ai.defineFlow(
-  {
-    name: 'generateImagesFlow',
-    inputSchema: GenerateImagesInputSchema,
-    outputSchema: GenerateImagesOutputSchema,
-  },
-  async (input) => {
-    const { projectDescription, billOfMaterials } = input;
-    
-    // Generate robot concept image using DALL-E (only this one makes sense)
+  const { projectDescription, billOfMaterials } = input;
+  
+  try {
+    // Generate robot concept image using DALL-E
     const conceptImagePrompt = `Create a detailed concept image of a robot based on this description: ${projectDescription}. Include the key components from these materials: ${billOfMaterials}. The image should be realistic, well-lit, and show the robot from a front angle.`;
     
-    const conceptImageResponse = await ai.generate({
+    const response = await openai.images.generate({
+      model: IMAGE_MODEL,
       prompt: conceptImagePrompt,
-      model: 'gpt-image-1',
-      config: {
-        n: 1,
-        size: '1024x1024',
-        response_format: 'url',
-      },
+      n: 1,
+      size: '1024x1024',
+      response_format: 'url',
     });
 
-    // Extract the concept image URL from Genkit response structure
-    const conceptImageUrl = extractImageUrl(conceptImageResponse);
+    // Extract the image URL from OpenAI response
+    const imageUrl = response.data?.[0]?.url;
+    
+    if (!imageUrl) {
+      console.error('No image URL returned from OpenAI');
+      return {
+        conceptImage: '',
+        circuitDiagram: '',
+        robot3DModel: '',
+      };
+    }
 
-    // Convert concept image URL to data URI
-    const conceptImageUri = await imageUrlToDataUri(conceptImageUrl);
+    // Convert image URL to data URI
+    const conceptImageUri = await imageUrlToDataUri(imageUrl);
 
     // For circuit diagrams and 3D models, we'll return empty strings
     // since DALL-E is not suitable for generating technical diagrams
@@ -66,37 +64,14 @@ const generateImagesFlow = ai.defineFlow(
       circuitDiagram: '',  // Will fall back to placeholder
       robot3DModel: '',   // Will fall back to placeholder
     };
+  } catch (error) {
+    console.error('Error generating robot images:', error);
+    return {
+      conceptImage: '',
+      circuitDiagram: '',
+      robot3DModel: '',
+    };
   }
-);
-
-function extractImageUrl(genkitResponse: any): string {
-  // Check if response has the standard format with candidates
-  if (genkitResponse && genkitResponse.candidates && genkitResponse.candidates[0]) {
-    const candidate = genkitResponse.candidates[0];
-    if (candidate.message && candidate.message.content && candidate.message.content[0]) {
-      const content = candidate.message.content[0];
-      if (content.media && content.media.url) {
-        return content.media.url;
-      }
-    }
-  }
-  
-  // If the response has a different structure, try alternative access patterns
-  if (genkitResponse && typeof genkitResponse === 'object') {
-    // Check if the response directly contains a media URL
-    if (genkitResponse.media && genkitResponse.media.url) {
-      return genkitResponse.media.url;
-    }
-    
-    // Check if response.text() method exists (for text generation responses)
-    if (typeof genkitResponse.text === 'function') {
-      return genkitResponse.text();
-    }
-  }
-  
-  // If all else fails, return an empty string
-  console.error('Could not extract image URL from response:', genkitResponse);
-  return '';
 }
 
 async function imageUrlToDataUri(url: string): Promise<string> {
