@@ -23,6 +23,17 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
   const conceptImage = data.conceptImage || PlaceHolderImages.find((p) => p.id === 'robot-concept')?.imageUrl;
   const circuitImage = data.circuitDiagramImage || PlaceHolderImages.find((p) => p.id === 'circuit-diagram')?.imageUrl;
   const modelImage = data.robot3DModelImage || PlaceHolderImages.find((p) => p.id === '3d-model')?.imageUrl;
+  
+  // Handle OBJ file data
+  const objContent = data.robot3DModelObjContent;
+  const objFilename = data.robot3DModelFilename || 'robot_model.obj';
+
+  const handleDownloadObjFile = () => {
+    if (objContent) {
+      const blob = new Blob([objContent], { type: 'text/plain' });
+      saveAs(blob, objFilename);
+    }
+  };
 
   const handleDownload = async () => {
     const zip = new JSZip();
@@ -55,22 +66,9 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
       zip.file("images/circuit_diagram.jpg", blob);
     }
 
-    if (modelImage && modelImage.startsWith('data:')) {
-      // It's a data URI, need to extract the base64 part and create a blob
-      const base64Data = modelImage.split(',')[1];
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], {type: 'image/png'});
-      zip.file("images/3d_model.png", blob);
-    } else if (modelImage && !modelImage.startsWith('data:')) {
-      // It's a URL, fetch it
-      const response = await fetch(modelImage);
-      const blob = await response.blob();
-      zip.file("images/3d_model.jpg", blob);
+    // Add OBJ file if available
+    if (objContent) {
+      zip.file(`3d_models/${objFilename}`, objContent);
     }
 
     zip.generateAsync({type:"blob"}).then(function(content) {
@@ -163,10 +161,31 @@ export default function ResultsDisplay({ data, onReset }: ResultsDisplayProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">3D Model</CardTitle>
-                        <CardDescription>Printable parts for your robot&apos;s chassis.</CardDescription>
+                        <CardDescription>Printable OBJ file for your robot&apos;s chassis.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {modelImage && <Image src={modelImage} alt="Generated 3D model" width={600} height={400} className="rounded-lg border object-cover" />}
+                        {objContent ? (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-muted rounded-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Shapes className="h-5 w-5 text-primary" />
+                                        <span className="font-medium">{objFilename}</span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                        3D model file ready for 3D printing or CAD software
+                                    </p>
+                                    <Button onClick={handleDownloadObjFile} className="w-full">
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Download OBJ File
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-muted rounded-lg text-center">
+                                <Shapes className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                                <p className="text-sm text-muted-foreground">3D model will be generated</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

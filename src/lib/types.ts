@@ -10,6 +10,8 @@ export type ProjectData = {
   assemblyInstructions: GenerateAssemblyInstructionsOutput;
   conceptImage?: string;
   circuitDiagramImage?: string;
-  robot3DModelImage?: string;
+  robot3DModelImage?: string; // Deprecated: keeping for backward compatibility
+  robot3DModelObjContent?: string;
+  robot3DModelFilename?: string;
   platform: 'Raspberry Pi' | 'Arduino' | 'MicroBit';
 };

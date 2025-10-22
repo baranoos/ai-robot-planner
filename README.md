@@ -23,7 +23,7 @@ Copy `.env.example` to `.env` and fill in your OpenAI API key.
 
 This project uses direct OpenAI API calls for:
 - **Text Generation**: GPT-4 Turbo for generating project descriptions, code, bills of materials, and assembly instructions
-- **Image Generation**: DALL-E 3 for generating robot concept images
+- **Image Generation**: GPT-Image-1 for generating robot concept images, circuit diagrams, and 3D model visualizations
 
 The implementation uses the official OpenAI Node.js SDK for all API interactions.
 

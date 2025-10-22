@@ -9,4 +9,4 @@ export const openai = new OpenAI({
 export const DEFAULT_MODEL = 'gpt-4-turbo';
 
 // Default model to use for image generation
-export const IMAGE_MODEL = 'dall-e-3';
+export const IMAGE_MODEL = 'gpt-image-1';

@@ -26,7 +26,7 @@ const GenerateAssemblyInstructionsInputSchema = z.object({
   robot3DModel: z
     .string()
     .describe(
-      'A 3D model of the robot, provided as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'    ),
+      'A 3D model of the robot in OBJ format, provided as text content that can be used for 3D printing and assembly reference.'    ),
 });
 export type GenerateAssemblyInstructionsInput = z.infer<
   typeof GenerateAssemblyInstructionsInputSchema

@@ -45,7 +45,8 @@ export async function generateProjectAction(data: {
       assemblyInstructions,
       conceptImage: generatedImages.conceptImage,
       circuitDiagramImage: generatedImages.circuitDiagram,
-      robot3DModelImage: generatedImages.robot3DModel,
+      robot3DModelObjContent: generatedImages.robot3DModel,
+      robot3DModelFilename: generatedImages.robot3DModelFilename,
       platform: data.platform,
     };
 
