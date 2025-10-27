@@ -11,10 +11,16 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 export async function generateProjectAction(data: {
   description: string;
   platform: 'Raspberry Pi' | 'Arduino' | 'MicroBit';
+  image?: string;
 }): Promise<{ success: boolean; data?: ProjectData; error?: string }> {
   try {
-    const projectDescription = await generateProjectDescription({ input: data.description });
-    const billOfMaterials = await generateBillOfMaterials(projectDescription);
+    const projectDescription = await generateProjectDescription({ 
+      input: data.description,
+      image: data.image,
+    });
+    const billOfMaterials = await generateBillOfMaterials({
+      projectDescription: projectDescription.projectDescription,
+    });
     const code = await generateCode({
       robotDescription: projectDescription.projectDescription,
       platform: data.platform,

@@ -19,9 +19,26 @@ export default function Home() {
   const handleGenerate = async (data: {
     description: string;
     platform: 'Raspberry Pi' | 'Arduino' | 'MicroBit';
+    image?: File | null;
   }) => {
     setProjectState('generating');
-    const result = await generateProjectAction(data);
+    
+    // Convert image to base64 if provided
+    let imageBase64: string | undefined;
+    if (data.image) {
+      const reader = new FileReader();
+      imageBase64 = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(data.image!);
+      });
+    }
+    
+    const result = await generateProjectAction({
+      description: data.description,
+      platform: data.platform,
+      image: imageBase64,
+    });
     
     if (result.success && result.data) {
       setProjectData(result.data);

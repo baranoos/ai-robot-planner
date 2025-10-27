@@ -3,6 +3,7 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { ImageUp, Sparkles } from 'lucide-react';
+import { ImageUp, Sparkles, X } from 'lucide-react';
 
 const formSchema = z.object({
   description: z
@@ -31,6 +32,7 @@ const formSchema = z.object({
   platform: z.enum(['Raspberry Pi', 'Arduino', 'MicroBit'], {
     required_error: 'You need to select a platform.',
   }),
+  image: z.instanceof(File).nullable().optional(),
 });
 
 type InputFormValues = z.infer<typeof formSchema>;
@@ -40,14 +42,41 @@ interface InputStepProps {
 }
 
 export default function InputStep({ onSubmit }: InputStepProps) {
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const form = useForm<InputFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: '',
+      image: null,
     },
   });
 
   const { isSubmitting } = form.formState;
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check if it's an image
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+      }
+      
+      // Read file as data URL for preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      
+      form.setValue('image', file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    form.setValue('image', null);
+  };
 
   return (
     <Card className="w-full shadow-lg">
@@ -79,18 +108,50 @@ export default function InputStep({ onSubmit }: InputStepProps) {
               )}
             />
 
-            <FormItem>
-              <FormLabel>Upload a Sketch (Coming Soon)</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Input type="file" disabled className="pl-10" />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <ImageUp className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field: { value, onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Upload a Sketch (Optional)</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      {!imagePreview && (
+                        <div className="relative">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            className="pl-10"
+                            onChange={(e) => {
+                              handleImageChange(e);
+                              onChange(e.target.files?.[0] || null);
+                            }}
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <ImageUp className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        </div>
+                      )}
+                      {imagePreview && (
+                        <div className="relative border rounded-lg overflow-hidden">
+                          <img src={imagePreview} alt="Upload preview" className="w-full h-48 object-contain" />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={handleRemoveImage}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
