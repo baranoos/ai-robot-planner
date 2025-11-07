@@ -1,11 +1,10 @@
 'use server';
 
 /**
- * @fileOverview A flow to generate step-by-step assembly instructions for a robot.
+ * @fileOverview A flow to generate extremely detailed, step-by-step assembly instructions for a robot.
  *
- * - generateAssemblyInstructions - A function that generates assembly instructions.
- * - GenerateAssemblyInstructionsInput - The input type for the generateAssemblyInstructions function.
- * - GenerateAssemblyInstructionsOutput - The return type for the generateAssemblyInstructions function.
+ * This version enforces highly detailed, validated, and bug-resistant instructions.
+ * It ensures valid JSON output and automatically includes validation and troubleshooting sections.
  */
 
 import { openai, DEFAULT_MODEL } from '@/ai/openai-client';
@@ -21,12 +20,12 @@ const GenerateAssemblyInstructionsInputSchema = z.object({
   circuitDiagram: z
     .string()
     .describe(
-      'A diagram of the robot circuit, provided as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'    ),
+      'A diagram of the robot circuit, provided as a data URI that must include a MIME type and use Base64 encoding. Expected format: data:<mimetype>;base64,<encoded_data>.',
+    ),
   code: z.string().describe('The code for controlling the robot.'),
   robot3DModel: z
     .string()
-    .describe(
-      'A 3D model of the robot in OBJ format, provided as text content that can be used for 3D printing and assembly reference.'    ),
+    .describe('A 3D model of the robot in OBJ format, provided as text content that can be used for 3D printing and assembly reference.'),
 });
 export type GenerateAssemblyInstructionsInput = z.infer<
   typeof GenerateAssemblyInstructionsInputSchema
@@ -43,18 +42,129 @@ export type GenerateAssemblyInstructionsOutput = z.infer<
 >;
 
 export async function generateAssemblyInstructions(
-  input: GenerateAssemblyInstructionsInput
+  input: GenerateAssemblyInstructionsInput,
 ): Promise<GenerateAssemblyInstructionsOutput> {
-  const prompt = `You are an expert in robotics and creating clear, concise assembly instructions.
+  const prompt = `
+You are a senior robotics engineer and technical documentation specialist.
 
-Using the following information, generate step-by-step instructions for assembling the robot.
-Specify the format in which the instructions are provided (PDF or Markdown).
+Generate **extremely detailed, step-by-step assembly instructions** for building the described robot.  
+Each step must be *explicit, practical, and testable* — never assume the user knows what to do.
 
-Project Description: ${input.projectDescription}
-Bill of Materials: ${input.billOfMaterials}
-Code: ${input.code}
+---
 
-Note: Circuit diagrams and 3D models are provided as data URIs but may be empty if not available.`;
+### Context
+
+Project Description:
+${input.projectDescription}
+
+Bill of Materials:
+${input.billOfMaterials}
+
+Circuit Diagram (may be Base64 data URI or empty):
+${input.circuitDiagram ? '[included]' : '[none]'}
+
+Code:
+${input.code ? '[included]' : '[none]'}
+
+Robot 3D Model (OBJ format):
+${input.robot3DModel ? '[included]' : '[none]'}
+
+---
+
+### OUTPUT FORMAT
+Respond with **valid JSON** containing:
+- "assemblyInstructions": (string) detailed Markdown instructions
+- "assemblyInstructionsFormat": either "pdf" or "markdown"
+
+---
+
+### CRITICAL BOM INTEGRATION RULES
+
+- Every single component listed in the Bill of Materials **must appear in the assembly steps**.
+- If the BOM specifies a **quantity**, you must reference it explicitly.
+  - Example: “Install 2 × DC 6V motors on each side of the chassis.”
+- If multiple identical components are used (e.g., 4 screws, 2 sensors), describe **each installation step individually or in grouped form** (e.g., “Repeat for all 4 wheels”).
+- If a component from the BOM is not used during assembly, include a note in **Appendices** explaining why.
+- If the BOM contains pricing or vendor links, ignore those for now — only focus on component usage, quantity, and placement.
+
+---
+
+### INSTRUCTION REQUIREMENTS
+
+Make the assembly guide **hyper-detailed**.  
+Each section should contain exact component names, screw sizes, wire colors, pin numbers, and connector types.
+
+#### Sections (in order):
+
+1. **Overview**
+   - Summarize the robot’s goal and purpose.
+   - Include safety precautions: anti-static handling, battery safety, soldering safety.
+
+2. **Tools & Materials**
+   - List all required tools and consumables with details.
+   - Example: “Phillips screwdriver #1”, “M3 wrench”, “22 AWG wire stripper”, “Multimeter with continuity mode.”
+
+3. **Preparation**
+   - List all parts from the Bill of Materials with **quantities** (e.g., “2 × DC Motors”, “1 × Raspberry Pi 4 Model B”).
+   - Instruct the user to label, test, and pre-fit parts before assembly.
+   - Example: “Label each ultrasonic sensor (FRONT, LEFT, RIGHT).”
+
+4. **Mechanical Assembly**
+   - Describe exactly how to attach each mechanical part.
+   - Include direction, orientation, screw sizes, torque guidance, and alignment notes.
+   - Example: “Attach both left and right DC motors (2× total) using 2× M3×10 mm screws per motor. Torque 0.5 Nm.”
+
+5. **Electrical Wiring**
+   - Describe each connection in precise terms:
+     - Wire color, connector type, port/pin label, length, and wire gauge (AWG).
+     - Example: “Connect red (V+) wire from 7.4 V Li-ion battery pack to Arduino VIN via JST-SM 2-pin connector (22 AWG, 120 mm).”
+   - Include wiring for every listed component that requires power or communication.
+   - Verify correct polarity and connector locking.
+
+6. **Circuit Verification**
+   - Explain how to check continuity and voltage with a multimeter.
+   - Include expected voltage values and polarity checks.
+
+7. **Firmware Upload & Setup**
+   - Step-by-step: connect controller board, upload firmware, configure settings.
+   - Example: “Set approach interval = 1 hour in main.py line 42.”
+
+8. **Calibration**
+   - Include sensor calibration (e.g., ultrasonic distance, motor balance).
+   - Provide expected tolerances and verification tests.
+
+9. **Validation Tests (Goal #1)**
+   - Define specific functional tests to ensure the robot performs correctly.
+   - Each test must include objective, steps, expected result, and pass criteria.
+   - Example: “Obstacle avoidance: place object 20 cm ahead → robot stops within 0.5 s and turns ≥ 45°.”
+
+10. **Common Issues & Fixes (Goal #2)**
+    - List common wiring and code issues with cause and resolution.
+    - Example: “If left motor doesn’t spin → verify ENA pin connection and motor polarity.”
+
+11. **Maintenance & Safety**
+    - Battery care, cleaning, and mechanical inspection steps.
+
+12. **Appendices**
+    - Optional: 3D model, circuit diagram notes, wiring pinout summary, and unused BOM parts explanation.
+
+13. **Build Completion**
+    - End with a “Build Complete” summary confirming successful setup.
+
+---
+
+### STYLE & FORMAT
+- Use Markdown numbering (1., 1.1., etc.).
+- Use **imperative verbs** (“Attach”, “Connect”, “Verify”, “Upload”).
+- Reference components and quantities exactly as in the BOM.
+- Write concise but specific sentences.
+- If any detail is missing, state assumptions clearly.
+- Keep tone professional and instructional.
+
+---
+
+Return only the JSON object — no commentary, no extra text.
+`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -62,7 +172,8 @@ Note: Circuit diagrams and 3D models are provided as data URIs but may be empty 
       messages: [
         {
           role: 'system',
-          content: 'You are an expert in robotics. Respond with valid JSON containing "assemblyInstructions" (string) and "assemblyInstructionsFormat" (either "pdf" or "markdown") fields.',
+          content:
+            'You are an expert robotics engineer. Respond ONLY with valid JSON containing "assemblyInstructions" (string) and "assemblyInstructionsFormat" ("pdf" or "markdown"). The content must be fully detailed, executable, and validated.',
         },
         {
           role: 'user',
@@ -70,18 +181,17 @@ Note: Circuit diagrams and 3D models are provided as data URIs but may be empty 
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.7,
+      temperature: 0.55,
     });
 
     const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error('No response from OpenAI');
-    }
+    if (!content) throw new Error('No response from OpenAI');
 
     const parsed = JSON.parse(content);
     return {
       assemblyInstructions: parsed.assemblyInstructions || '',
-      assemblyInstructionsFormat: parsed.assemblyInstructionsFormat === 'pdf' ? 'pdf' : 'markdown',
+      assemblyInstructionsFormat:
+        parsed.assemblyInstructionsFormat === 'pdf' ? 'pdf' : 'markdown',
     };
   } catch (error) {
     console.error('Error generating assembly instructions:', error);
