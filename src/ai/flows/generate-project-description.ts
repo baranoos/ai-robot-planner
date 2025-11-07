@@ -59,15 +59,60 @@ User description: ${input.input}`;
 
     const responseContent = response.choices[0]?.message?.content;
     if (!responseContent) {
-      throw new Error('No response from OpenAI');
+      console.warn('No response from OpenAI, using fallback description.');
+      return {
+        projectDescription: `Robot project based on your description: ${input.input}`,
+      };
     }
 
-    const parsed = JSON.parse(responseContent);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(responseContent);
+    } catch (e) {
+      // If it's not JSON (unexpected), use the raw content as description
+      console.warn('Non-JSON response content, using raw text as description.');
+      return {
+        projectDescription: String(responseContent),
+      };
+    }
+    let projectDescription: unknown = parsed.projectDescription;
+
+    // Ensure we always return a string for projectDescription
+    if (typeof projectDescription === 'object' && projectDescription !== null) {
+      // Common structure: { goals, scope, keyFeatures }
+      const asRecord = projectDescription as Record<string, unknown>;
+      const parts: string[] = [];
+      if (asRecord.goals) {
+        const goalsText = Array.isArray(asRecord.goals)
+          ? (asRecord.goals as unknown[]).map((g) => String(g)).join('; ')
+          : String(asRecord.goals);
+        parts.push(`Goals: ${goalsText}`);
+      }
+      if (asRecord.scope) {
+        parts.push(`Scope: ${String(asRecord.scope)}`);
+      }
+      if (asRecord.keyFeatures) {
+        const featuresText = Array.isArray(asRecord.keyFeatures)
+          ? (asRecord.keyFeatures as unknown[]).map((f) => String(f)).join('; ')
+          : String(asRecord.keyFeatures);
+        parts.push(`Key Features: ${featuresText}`);
+      }
+      // Fallback to JSON string if we couldn't format nicely
+      projectDescription = parts.length > 0 ? parts.join('\n') : JSON.stringify(asRecord);
+    } else if (projectDescription == null) {
+      projectDescription = '';
+    } else {
+      projectDescription = String(projectDescription);
+    }
+
     return {
-      projectDescription: parsed.projectDescription || '',
+      projectDescription: projectDescription as string,
     };
   } catch (error) {
     console.error('Error generating project description:', error);
-    throw new Error('Failed to generate project description');
+    // Final fallback: echo the user's input as a minimal description
+    return {
+      projectDescription: `Robot project based on your description: ${input.input}`,
+    };
   }
 }

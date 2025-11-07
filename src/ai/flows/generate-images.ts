@@ -9,7 +9,6 @@
  */
 
 import { openai, IMAGE_MODEL } from '@/ai/openai-client';
-import { generateObjModel } from './generate-obj-model';
 import { z } from 'zod';
 
 const GenerateImagesInputSchema = z.object({
@@ -32,21 +31,20 @@ export async function generateRobotImages(input: GenerateImagesInput): Promise<G
   const { projectDescription, billOfMaterials } = input;
   
   try {
-    // Generate images and OBJ model concurrently
-    const [conceptImage, circuitDiagram, objModelResult] = await Promise.all([
+    // Generate images only (skipping OBJ model generation for now)
+    const [conceptImage, circuitDiagram] = await Promise.all([
       generateConceptImage(projectDescription, billOfMaterials),
       generateCircuitDiagram(projectDescription, billOfMaterials),
-      generateObjModel({ projectDescription, billOfMaterials }),
     ]);
 
     return {
       conceptImage,
       circuitDiagram,
-      robot3DModel: objModelResult.objContent,
-      robot3DModelFilename: objModelResult.filename,
+      robot3DModel: '', // Empty string since we're skipping OBJ generation
+      robot3DModelFilename: 'robot_model.obj',
     };
   } catch (error) {
-    console.error('Error generating robot images and model:', error);
+    console.error('Error generating robot images:', error);
     return {
       conceptImage: '',
       circuitDiagram: '',
