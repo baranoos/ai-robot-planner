@@ -63,13 +63,32 @@ Your response must be valid JSON and follow this exact structure:
   ]
 }
 
-⚙️ Rules:
-- Include 8–15 components depending on the project complexity.
-- Always include "quantity" for every part (never leave it out).
-- Use affordable, commonly available parts from Adafruit, SparkFun, Pimoroni, or Mouser.
-- Prices are per unit in USD.
-- Do NOT include total price or explanations outside JSON.
-`;
+⚙️ CRITICAL RULES FOR VISUAL CONSISTENCY:
+- Include 8-15 realistic, commonly available components
+- Every component must be visually distinctive and clearly identifiable in images
+- Choose components with standardized appearances (Arduino Uno, Raspberry Pi, standard servos, etc.)
+- Include specific model numbers and brands that have consistent visual appearance
+- Ensure components are compatible with each other mechanically and electrically
+- Use affordable parts from Adafruit, SparkFun, Pimoroni, or Mouser with real product links
+- All prices must be realistic current market prices per unit in USD
+- Every component must be something that can be realistically assembled together
+- Include fasteners (screws, nuts, bolts) appropriate for the selected components
+- Add wiring/connectors that match the components' actual connection types
+- Always include "quantity" for every part (never leave it out)
+- Do NOT include total price or explanations outside JSON
+
+🎯 VISUAL DESIGN GUIDELINES:
+- Prefer components with clear labels and distinct colors/shapes
+- Choose microcontrollers with recognizable boards (Arduino Uno R3, Raspberry Pi 4)
+- Select sensors with standard packages (HC-SR04 ultrasonic, IR obstacle sensors)
+- Use motors with standard mounting patterns (NEMA 17, TT motors)
+🔧 EXACT ASSEMBLY COMPATIBILITY:
+- Every component selected must have clear assembly path
+- Fasteners must match mounting holes of components
+- Connectors must be compatible between components
+- Power requirements must be consistent across all parts
+- Mechanical dimensions must allow proper integration
+- MUST ENSURE ALL COMPONENTS CAN BE ASSEMBLED TOGETHER REALISTICALLY`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -78,7 +97,7 @@ Your response must be valid JSON and follow this exact structure:
         {
           role: 'system',
           content:
-            'You are an expert robotics engineer. Respond ONLY with valid JSON. The JSON must contain a "billOfMaterials" array. Each object must have "component", "description", "quantity", "link", and "approximatePriceUSD" fields. No explanations or notes outside the JSON.',
+            'You are an expert robotics engineer specializing in component selection for visually consistent robotics projects. Respond ONLY with valid JSON. The JSON must contain a "billOfMaterials" array. Each object must have "component", "description", "quantity", "link", and "approximatePriceUSD" fields. Every component must be visually distinctive, commonly available, mechanically compatible with other components, and clearly identifiable in generated images. No explanations or notes outside the JSON.',
         },
         {
           role: 'user',

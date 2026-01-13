@@ -32,8 +32,8 @@ export async function generateObjModel(input: GenerateObjModelInput): Promise<Ge
   try {
     const { projectDescription, billOfMaterials } = input;
 
-    console.log(`[OBJ Model] Generating 3D model for project: ${projectDescription.substring(0, 100)}...`);
-    console.log(`[OBJ Model] Using components: ${billOfMaterials.substring(0, 100)}...`);
+    console.log('[OBJ Model] Generating 3D model for project: ' + projectDescription.substring(0, 100) + '...');
+    console.log('[OBJ Model] Using components: ' + billOfMaterials.substring(0, 100) + '...');
 
     const prompt = `Create a detailed and realistic 3D OBJ file for a robot based on this specific project:
 
@@ -86,7 +86,7 @@ Generate ONLY the complete OBJ file content with no additional text or explanati
       throw new Error('Failed to generate OBJ content');
     }
 
-    console.log(`[OBJ Model] Successfully generated OBJ file with ${objContent.split('\n').length} lines`);
+    console.log('[OBJ Model] Successfully generated OBJ file with ' + objContent.split('\n').length + ' lines');
 
     // Generate a filename based on the project description
     const sanitizedDescription = projectDescription
@@ -97,7 +97,7 @@ Generate ONLY the complete OBJ file content with no additional text or explanati
     
     const filename = `robot_${sanitizedDescription}.obj`;
 
-    console.log(`[OBJ Model] Generated filename: ${filename}`);
+    console.log('[OBJ Model] Generated filename: ' + filename);
 
     return {
       objContent,

@@ -87,6 +87,24 @@ Respond with **valid JSON** containing:
 - If a component from the BOM is not used during assembly, include a note in **Appendices** explaining why.
 - If the BOM contains pricing or vendor links, ignore those for now — only focus on component usage, quantity, and placement.
 
+🔧  MECHANICAL COMPATIBILITY CHECKLIST:
+- Verify motor shaft diameter matches wheel hubs
+- Ensure screw sizes match mounting holes on components  
+- Check that chassis dimensions accommodate all components
+- Confirm that fastener quantities are sufficient for all attachments
+
+⚡  ELECTRICAL COMPATIBILITY VALIDATION:
+- Verify voltage requirements match power supply capabilities
+- Ensure pin connections are compatible between components
+- Check that connector types match (JST, Dupont, screw terminals)
+- Validate current requirements don't exceed component ratings
+
+📋  COMPONENT TRACKING:
+- Create a checklist of all BOM items with quantities
+- Reference this checklist throughout the assembly process
+- Include a final verification step confirming all components are used
+- Document any purpose for which each component is used
+
 ---
 
 ### INSTRUCTION REQUIREMENTS
@@ -104,7 +122,7 @@ Each section should contain exact component names, screw sizes, wire colors, pin
    - List all required tools and consumables with details.
    - Example: “Phillips screwdriver #1”, “M3 wrench”, “22 AWG wire stripper”, “Multimeter with continuity mode.”
 
-3. **Preparation**
+3. **Component Inventory & Verification**
    - List all parts from the Bill of Materials with **quantities** (e.g., “2 × DC Motors”, “1 × Raspberry Pi 4 Model B”).
    - Instruct the user to label, test, and pre-fit parts before assembly.
    - Example: “Label each ultrasonic sensor (FRONT, LEFT, RIGHT).”
@@ -145,10 +163,14 @@ Each section should contain exact component names, screw sizes, wire colors, pin
 11. **Maintenance & Safety**
     - Battery care, cleaning, and mechanical inspection steps.
 
-12. **Appendices**
-    - Optional: 3D model, circuit diagram notes, wiring pinout summary, and unused BOM parts explanation.
+12. **Final Component Verification**
+    - Cross-reference assembly with complete Bill of Materials
+    - Confirm every BOM component is properly installed and functional
+    - Provide a component-by-component verification checklist
+    - Include troubleshooting for any component that fails verification
+    - Document any modifications made during assembly
 
-13. **Build Completion**
+13. **Build Completion & Validation**
     - End with a “Build Complete” summary confirming successful setup.
 
 ---
@@ -172,8 +194,7 @@ Return only the JSON object — no commentary, no extra text.
       messages: [
         {
           role: 'system',
-          content:
-            'You are an expert robotics engineer. Respond ONLY with valid JSON containing "assemblyInstructions" (string) and "assemblyInstructionsFormat" ("pdf" or "markdown"). The content must be fully detailed, executable, and validated.',
+          content: 'You are an expert robotics engineer and technical documentation specialist specializing in PERFECT BOM-ASSEMBLY INTEGRATION. Respond ONLY with valid JSON containing "assemblyInstructions" (string) and "assemblyInstructionsFormat" ("pdf" or "markdown").\n\nABSOLUTE REQUIREMENTS - NON-NEGOTIABLE:\n1. EVERY single component from Bill of Materials MUST be used in assembly steps\n2. EXACT quantities from BOM must be referenced explicitly\n3. Component names MUST match BOM exactly\n4. Each assembly step must be mechanically and electrically feasible\n5. Text must be clear, precise, and executable\n6. No component from BOM can be omitted or ignored\n\nBOM COMPLIANCE CHECKLIST:\n- Cross-reference every BOM item with assembly steps\n- Verify exact quantities are used\n- Ensure all connectors, fasteners, and components included\n- Validate mechanical compatibility between components\n- Check electrical connections are possible with listed parts\n- Confirm no BOM components are left unused\n\nThe content must be fully detailed, validated, and ensure every component from the Bill of Materials is properly integrated and accounted for. All instructions must be technically accurate and mechanically feasible.',
         },
         {
           role: 'user',
